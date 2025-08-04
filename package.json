@@ -1,0 +1,22 @@
+{
+  "name": "github-management",
+  "version": "1.0.0",
+  "description": "A Node.js program to manage GitHub repositories",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "setup": "node setup.js"
+  },
+  "keywords": ["github", "management", "repositories", "cli"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@octokit/rest": "^20.0.2",
+    "inquirer": "^9.2.12",
+    "chalk": "^4.1.2",
+    "ora": "^5.4.1",
+    "dotenv": "^16.3.1"
+  },
+  "type": "module"
+} 
