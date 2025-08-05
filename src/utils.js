@@ -91,18 +91,32 @@ export const confirmAction = async (message) => {
   return confirm;
 };
 
-export const selectRepository = async (repos, message = 'Select a repository:') => {
+export const selectRepository = async (repos, message = 'Select a repository:', allowBack = false) => {
   const { default: inquirer } = await import('inquirer');
   
   if (repos.length === 0) {
     throw new Error('No repositories available for selection.');
   }
 
-  const choices = repos.map((repo, index) => ({
-    name: `${repo.name}${repo.description ? ` - ${truncateText(repo.description, 40)}` : ''}`,
-    value: repo,
-    short: repo.name
-  }));
+  const choices = [
+    ...repos.map((repo, index) => ({
+      name: `${repo.name}${repo.description ? ` - ${truncateText(repo.description, 40)}` : ''}`,
+      value: repo,
+      short: repo.name
+    }))
+  ];
+
+  // Add back option if allowed
+  if (allowBack) {
+    choices.push(
+      new inquirer.Separator(),
+      {
+        name: '⬅️  Back to previous menu',
+        value: 'back',
+        short: 'Back'
+      }
+    );
+  }
 
   const { selectedRepo } = await inquirer.prompt([
     {
@@ -117,7 +131,7 @@ export const selectRepository = async (repos, message = 'Select a repository:') 
   return selectedRepo;
 };
 
-export const selectMultipleRepositories = async (repos, message = 'Select repositories:') => {
+export const selectMultipleRepositories = async (repos, message = 'Select repositories:', allowBack = false) => {
   const { default: inquirer } = await import('inquirer');
   
   if (repos.length === 0) {
@@ -144,6 +158,18 @@ export const selectMultipleRepositories = async (repos, message = 'Select reposi
     }))
   ];
 
+  // Add back option if allowed
+  if (allowBack) {
+    choices.push(
+      new inquirer.Separator(),
+      {
+        name: '⬅️  Back to previous menu',
+        value: 'back',
+        short: 'Back'
+      }
+    );
+  }
+
   const { selectedRepos } = await inquirer.prompt([
     {
       type: 'checkbox',
@@ -152,13 +178,18 @@ export const selectMultipleRepositories = async (repos, message = 'Select reposi
       choices: choices,
       pageSize: 15,
       validate: (input) => {
-        if (input.length === 0) {
-          return 'Please select at least one repository';
+        if (input.length === 0 && !input.includes('back')) {
+          return 'Please select at least one repository or choose Back';
         }
         return true;
       }
     }
   ]);
+
+  // Handle back option
+  if (selectedRepos.includes('back')) {
+    return 'back';
+  }
 
   // Handle select all/none options
   if (selectedRepos.includes('select-all')) {

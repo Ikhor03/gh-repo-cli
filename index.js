@@ -80,6 +80,11 @@ class GitHubManager {
             short: 'Delete repo'
           },
           {
+            name: '🗑️  Bulk delete repositories',
+            value: 'bulkDelete',
+            short: 'Bulk delete'
+          },
+          {
             name: '🗑️  Delete repository by name',
             value: 'deleteByName',
             short: 'Delete by name'
@@ -88,6 +93,11 @@ class GitHubManager {
             name: '👤 Show user information',
             value: 'userInfo',
             short: 'User info'
+          },
+          {
+            name: '🔍 Debug archived repositories',
+            value: 'debugArchived',
+            short: 'Debug archived'
           },
           {
             name: '❌ Exit',
@@ -144,12 +154,20 @@ class GitHubManager {
           await this.commands.deleteRepository();
           break;
           
+        case 'bulkDelete':
+          await this.commands.bulkDeleteRepositories();
+          break;
+          
         case 'deleteByName':
           await this.handleDeleteByName();
           break;
           
         case 'userInfo':
           await this.commands.showUserInfo();
+          break;
+          
+        case 'debugArchived':
+          await this.commands.debugArchivedRepositories();
           break;
           
         case 'exit':
@@ -393,6 +411,7 @@ if (args.length > 0) {
     console.log('  archive [repo]       Archive repository');
     console.log('  unarchive [repo]     Unarchive repository');
     console.log('  delete [repo-name]   Delete repository');
+    console.log('  bulk-delete          Bulk delete repositories');
     console.log('  info                 Show user information');
     console.log('  help                 Show this help message');
     console.log('\nExamples:');
@@ -403,6 +422,7 @@ if (args.length > 0) {
     console.log('  node index.js archive old-project');
     console.log('  node index.js unarchive old-project');
     console.log('  node index.js delete my-repo');
+    console.log('  node index.js bulk-delete');
     console.log('  node index.js info');
     console.log('\nSetup:');
     console.log('  1. Copy env.example to .env');
@@ -473,6 +493,10 @@ if (args.length > 0) {
           } else {
             await manager.commands.deleteRepository();
           }
+          break;
+          
+        case 'bulk-delete':
+          await manager.commands.bulkDeleteRepositories();
           break;
           
         case 'info':

@@ -65,7 +65,12 @@ class GitHubCommands {
         return;
       }
 
-      const selectedRepo = await selectRepository(repos, 'Select a repository to view details:');
+      const selectedRepo = await selectRepository(repos, 'Select a repository to view details:', true);
+      
+      // Handle back option
+      if (selectedRepo === 'back') {
+        return;
+      }
       
       const spinner = createSpinner('Fetching repository details...');
       
@@ -115,7 +120,12 @@ class GitHubCommands {
         return;
       }
 
-      const selectedRepo = await selectRepository(repos, 'Select a repository to delete:');
+      const selectedRepo = await selectRepository(repos, 'Select a repository to delete:', true);
+      
+      // Handle back option
+      if (selectedRepo === 'back') {
+        return;
+      }
       
       // Show repository details before deletion
       displayRepository(selectedRepo, true);
@@ -138,6 +148,90 @@ class GitHubCommands {
         displaySuccess(`Repository "${selectedRepo.name}" has been permanently deleted.`);
       } catch (error) {
         spinner.fail(`Failed to delete repository "${selectedRepo.name}"`);
+        displayError(error);
+      }
+      
+    } catch (error) {
+      displayError(error);
+    }
+  }
+
+  async bulkDeleteRepositories() {
+    try {
+      const repos = await this.client.listRepositories();
+      
+      if (repos.length === 0) {
+        displayWarning('No repositories found.');
+        return;
+      }
+
+      // Show warning about bulk deletion
+      console.log(chalk.bold.red('\n⚠️  WARNING: Bulk Repository Deletion'));
+      console.log(chalk.red('This action will permanently delete multiple repositories.'));
+      console.log(chalk.red('This action cannot be undone!'));
+      console.log(chalk.gray('Make sure you have backups if needed.\n'));
+
+      const selectedRepos = await selectMultipleRepositories(
+        repos, 
+        'Select repositories to delete (PERMANENT):',
+        true
+      );
+
+      // Handle back option
+      if (selectedRepos === 'back') {
+        return;
+      }
+
+      if (selectedRepos.length === 0) {
+        displayInfo('No repositories selected.');
+        return;
+      }
+
+      // Show selected repositories
+      console.log(chalk.bold.red('\n🗑️  Repositories to be deleted:'));
+      selectedRepos.forEach((repo, index) => {
+        console.log(chalk.red(`   ${index + 1}. ${repo.name}`));
+        if (repo.description) {
+          console.log(chalk.gray(`      ${repo.description}`));
+        }
+      });
+
+      const confirm = await confirmBulkAction(
+        selectedRepos, 
+        'PERMANENTLY DELETE', 
+        'DELETED (PERMANENT)'
+      );
+
+      if (!confirm) {
+        displayInfo('Bulk deletion cancelled.');
+        return;
+      }
+
+      // Final confirmation for dangerous operation
+      const finalConfirm = await confirmAction(
+        chalk.bold.red(`⚠️  FINAL WARNING: Are you absolutely sure you want to permanently delete ${selectedRepos.length} repository${selectedRepos.length === 1 ? '' : 'ies'}? This action cannot be undone!`)
+      );
+
+      if (!finalConfirm) {
+        displayInfo('Bulk deletion cancelled at final confirmation.');
+        return;
+      }
+
+      const spinner = createSpinner(`Deleting ${selectedRepos.length} repositories...`);
+      
+      try {
+        const username = await this.client.getUsername();
+        const { results, errors } = await this.client.bulkDeleteRepositories(username, selectedRepos);
+        spinner.succeed(`Bulk deletion completed`);
+        
+        displayBulkResults(results, errors, 'deletion', 'DELETED');
+        
+        if (results.length > 0) {
+          displayWarning(chalk.bold.red(`\n⚠️  ${results.length} repository${results.length === 1 ? '' : 'ies'} have been permanently deleted!`));
+        }
+        
+      } catch (error) {
+        spinner.fail('Failed to perform bulk deletion');
         displayError(error);
       }
       
@@ -237,6 +331,50 @@ class GitHubCommands {
     }
   }
 
+  async debugArchivedRepositories() {
+    const spinner = createSpinner('Fetching all repositories...');
+    
+    try {
+      const repos = await this.client.listRepositories();
+      spinner.succeed('Repositories fetched successfully');
+      
+      console.log(chalk.bold.cyan('\n🔍 Debug: Repository Archive Status'));
+      console.log(chalk.gray(`Total repositories found: ${repos.length}`));
+      
+      const archivedRepos = repos.filter(repo => repo.archived);
+      const activeRepos = repos.filter(repo => !repo.archived);
+      
+      console.log(chalk.green(`\n✅ Active repositories: ${activeRepos.length}`));
+      activeRepos.forEach((repo, index) => {
+        console.log(`   ${index + 1}. ${chalk.cyan(repo.name)} ${repo.private ? chalk.red('(Private)') : chalk.green('(Public)')}`);
+      });
+      
+      console.log(chalk.gray(`\n📦 Archived repositories: ${archivedRepos.length}`));
+      if (archivedRepos.length > 0) {
+        archivedRepos.forEach((repo, index) => {
+          console.log(`   ${index + 1}. ${chalk.cyan(repo.name)} ${repo.private ? chalk.red('(Private)') : chalk.green('(Public)')} - ${chalk.gray('Archived')}`);
+        });
+      } else {
+        console.log(chalk.yellow('   No archived repositories found.'));
+        console.log(chalk.gray('   This could mean:'));
+        console.log(chalk.gray('   - You haven\'t archived any repositories yet'));
+        console.log(chalk.gray('   - The repositories were archived through GitHub web interface'));
+        console.log(chalk.gray('   - There might be an API permission issue'));
+      }
+      
+      // Check for repositories that might be archived but not showing up
+      console.log(chalk.bold.yellow('\n🔧 Troubleshooting Tips:'));
+      console.log(chalk.gray('1. Make sure you archived the repository using this tool'));
+      console.log(chalk.gray('2. Check if the repository appears in your GitHub profile'));
+      console.log(chalk.gray('3. Verify your GitHub token has the correct permissions'));
+      console.log(chalk.gray('4. Try refreshing the repository list'));
+      
+    } catch (error) {
+      spinner.fail('Failed to fetch repositories');
+      displayError(error);
+    }
+  }
+
   async changeRepositoryVisibility() {
     try {
       const repos = await this.client.listRepositories();
@@ -246,7 +384,12 @@ class GitHubCommands {
         return;
       }
 
-      const selectedRepo = await selectRepository(repos, 'Select a repository to change visibility:');
+      const selectedRepo = await selectRepository(repos, 'Select a repository to change visibility:', true);
+      
+      // Handle back option
+      if (selectedRepo === 'back') {
+        return;
+      }
       
       // Show current repository details
       displayRepository(selectedRepo, true);
@@ -290,13 +433,6 @@ class GitHubCommands {
 
   async bulkChangeRepositoryVisibility() {
     try {
-      const repos = await this.client.listRepositories();
-      
-      if (repos.length === 0) {
-        displayWarning('No repositories found.');
-        return;
-      }
-
       // Ask user what visibility they want to set
       const { default: inquirer } = await import('inquirer');
       const { targetVisibility } = await inquirer.prompt([
@@ -319,10 +455,18 @@ class GitHubCommands {
         }
       ]);
 
-      // Filter repositories based on current visibility
+      // Get repositories based on current visibility (opposite of target)
       const currentVisibility = targetVisibility ? 'Public' : 'Private';
       const targetVisibilityText = targetVisibility ? 'Private' : 'Public';
-      const eligibleRepos = repos.filter(repo => repo.private !== targetVisibility);
+      
+      let eligibleRepos;
+      if (targetVisibility) {
+        // Want to make private, so get public repositories
+        eligibleRepos = await this.client.listPublicRepositories();
+      } else {
+        // Want to make public, so get private repositories
+        eligibleRepos = await this.client.listPrivateRepositories();
+      }
 
       if (eligibleRepos.length === 0) {
         displayInfo(`All repositories are already ${targetVisibilityText.toLowerCase()}.`);
@@ -331,8 +475,14 @@ class GitHubCommands {
 
       const selectedRepos = await selectMultipleRepositories(
         eligibleRepos, 
-        `Select repositories to change to ${targetVisibilityText}:`
+        `Select repositories to change to ${targetVisibilityText}:`,
+        true
       );
+
+      // Handle back option
+      if (selectedRepos === 'back') {
+        return;
+      }
 
       if (selectedRepos.length === 0) {
         displayInfo('No repositories selected.');
@@ -371,22 +521,19 @@ class GitHubCommands {
 
   async archiveRepository() {
     try {
-      const repos = await this.client.listRepositories();
+      const repos = await this.client.listActiveRepositories();
       
       if (repos.length === 0) {
-        displayWarning('No repositories found.');
-        return;
-      }
-
-      // Filter out already archived repositories
-      const activeRepos = repos.filter(repo => !repo.archived);
-      
-      if (activeRepos.length === 0) {
         displayWarning('No active repositories found to archive.');
         return;
       }
 
-      const selectedRepo = await selectRepository(activeRepos, 'Select a repository to archive:');
+      const selectedRepo = await selectRepository(repos, 'Select a repository to archive:', true);
+      
+      // Handle back option
+      if (selectedRepo === 'back') {
+        return;
+      }
       
       // Show repository details before archiving
       displayRepository(selectedRepo, true);
@@ -427,25 +574,23 @@ class GitHubCommands {
 
   async bulkArchiveRepositories() {
     try {
-      const repos = await this.client.listRepositories();
+      const repos = await this.client.listActiveRepositories();
       
       if (repos.length === 0) {
-        displayWarning('No repositories found.');
-        return;
-      }
-
-      // Filter out already archived repositories
-      const activeRepos = repos.filter(repo => !repo.archived);
-      
-      if (activeRepos.length === 0) {
         displayWarning('No active repositories found to archive.');
         return;
       }
 
       const selectedRepos = await selectMultipleRepositories(
-        activeRepos, 
-        'Select repositories to archive:'
+        repos, 
+        'Select repositories to archive:',
+        true
       );
+
+      // Handle back option
+      if (selectedRepos === 'back') {
+        return;
+      }
 
       if (selectedRepos.length === 0) {
         displayInfo('No repositories selected.');
@@ -484,22 +629,19 @@ class GitHubCommands {
 
   async unarchiveRepository() {
     try {
-      const repos = await this.client.listRepositories();
+      const repos = await this.client.listArchivedRepositories();
       
       if (repos.length === 0) {
-        displayWarning('No repositories found.');
-        return;
-      }
-
-      // Filter only archived repositories
-      const archivedRepos = repos.filter(repo => repo.archived);
-      
-      if (archivedRepos.length === 0) {
         displayWarning('No archived repositories found.');
         return;
       }
 
-      const selectedRepo = await selectRepository(archivedRepos, 'Select a repository to unarchive:');
+      const selectedRepo = await selectRepository(repos, 'Select a repository to unarchive:', true);
+      
+      // Handle back option
+      if (selectedRepo === 'back') {
+        return;
+      }
       
       // Show repository details before unarchiving
       displayRepository(selectedRepo, true);
@@ -540,25 +682,23 @@ class GitHubCommands {
 
   async bulkUnarchiveRepositories() {
     try {
-      const repos = await this.client.listRepositories();
+      const repos = await this.client.listArchivedRepositories();
       
       if (repos.length === 0) {
-        displayWarning('No repositories found.');
-        return;
-      }
-
-      // Filter only archived repositories
-      const archivedRepos = repos.filter(repo => repo.archived);
-      
-      if (archivedRepos.length === 0) {
         displayWarning('No archived repositories found.');
         return;
       }
 
       const selectedRepos = await selectMultipleRepositories(
-        archivedRepos, 
-        'Select repositories to unarchive:'
+        repos, 
+        'Select repositories to unarchive:',
+        true
       );
+
+      // Handle back option
+      if (selectedRepos === 'back') {
+        return;
+      }
 
       if (selectedRepos.length === 0) {
         displayInfo('No repositories selected.');

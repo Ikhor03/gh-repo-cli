@@ -12,6 +12,7 @@ A powerful Node.js CLI tool to manage your GitHub repositories with ease. List, 
 - 📦 **Archive/Unarchive**: Archive repositories to make them read-only or unarchive them
 - 📦 **Bulk Archive/Unarchive**: Archive or unarchive multiple repositories at once
 - 🗑️ **Delete Repositories**: Safely delete repositories with confirmation prompts
+- 🗑️ **Bulk Delete Repositories**: Delete multiple repositories with enhanced safety measures
 - 👤 **User Information**: View your GitHub profile statistics and repository analytics
 - 🎨 **Beautiful UI**: Colorful, emoji-rich interface with loading spinners
 - 🔧 **Flexible Usage**: Both interactive and command-line modes
@@ -37,6 +38,7 @@ A powerful Node.js CLI tool to manage your GitHub repositories with ease. List, 
 - **Repository Verification**: Verify repositories exist before operations
 - **Confirmation Dialogs**: Require explicit confirmation for destructive actions
 - **Bulk Operation Safety**: Comprehensive confirmation and progress tracking for bulk operations
+- **Enhanced Delete Safety**: Double confirmation for bulk deletion operations
 - **Error Handling**: Comprehensive error messages and recovery
 - **Status Feedback**: Clear success/failure messages with details
 - **Progress Tracking**: Real-time feedback during bulk operations
@@ -109,6 +111,7 @@ You'll see a menu with the following options:
 - 📦 Unarchive repository
 - 📦 Bulk unarchive repositories
 - 🗑️ Delete repository (interactive)
+- 🗑️ Bulk delete repositories
 - 🗑️ Delete repository by name
 - 👤 Show user information
 - ❌ Exit
@@ -138,6 +141,9 @@ node index.js unarchive old-project
 
 # Delete a specific repository
 node index.js delete my-repo-name
+
+# Bulk delete repositories
+node index.js bulk-delete
 
 # Show user information
 node index.js info
@@ -226,6 +232,14 @@ The program will:
 5. Process all selected repositories
 6. Display detailed results with success/failure summary
 
+**How to Select Multiple Repositories:**
+- Use **Spacebar** to select/deselect individual repositories
+- Use **Arrow keys** to navigate up and down the list
+- Use **Enter** to confirm your selection
+- **✅ Select All**: Choose all repositories at once
+- **❌ Select None**: Clear all selections
+- **⬅️ Back**: Return to previous menu
+
 ### Bulk Archive Repositories
 ```bash
 # Interactive mode - select from menu
@@ -236,6 +250,14 @@ The program will:
 3. Show confirmation with selected repositories
 4. Archive all selected repositories
 5. Display detailed results with success/failure summary
+
+**How to Select Multiple Repositories:**
+- Use **Spacebar** to select/deselect individual repositories
+- Use **Arrow keys** to navigate up and down the list
+- Use **Enter** to confirm your selection
+- **✅ Select All**: Choose all repositories at once
+- **❌ Select None**: Clear all selections
+- **⬅️ Back**: Return to previous menu
 
 ### Bulk Unarchive Repositories
 ```bash
@@ -248,6 +270,14 @@ The program will:
 4. Unarchive all selected repositories
 5. Display detailed results with success/failure summary
 
+**How to Select Multiple Repositories:**
+- Use **Spacebar** to select/deselect individual repositories
+- Use **Arrow keys** to navigate up and down the list
+- Use **Enter** to confirm your selection
+- **✅ Select All**: Choose all repositories at once
+- **❌ Select None**: Clear all selections
+- **⬅️ Back**: Return to previous menu
+
 ### Delete Repository
 ```bash
 node index.js delete old-project
@@ -257,6 +287,19 @@ The program will:
 2. Show repository details
 3. Ask for confirmation
 4. Delete the repository if confirmed
+
+### Bulk Delete Repositories
+```bash
+node index.js bulk-delete
+```
+The program will:
+1. Show a warning about permanent deletion
+2. Allow multiple repository selection
+3. Display selected repositories for review
+4. Ask for confirmation (first level)
+5. Ask for final confirmation (second level)
+6. Delete all selected repositories
+7. Show detailed results with success/failure summary
 
 ## Repository Information Displayed
 
@@ -289,6 +332,8 @@ The bulk operations feature significantly improves efficiency for users managing
 - **Privacy Updates**: Bulk change visibility for multiple repositories
 - **Repository Cleanup**: Mass archive repositories that are no longer actively maintained
 - **Access Control**: Quickly make multiple repositories private or public
+- **Mass Cleanup**: Bulk delete multiple repositories that are no longer needed
+- **Account Cleanup**: Remove multiple test or temporary repositories at once
 
 ### **Safety Features**
 - **Select All/None**: Quick selection options for large repository lists
@@ -297,12 +342,100 @@ The bulk operations feature significantly improves efficiency for users managing
 - **Error Handling**: Continues processing even if some operations fail
 - **Detailed Results**: Shows success/failure for each repository with summary statistics
 
+### **Performance Optimizations**
+- **Server-Side Filtering**: Uses GitHub API's built-in filtering instead of client-side filtering
+- **Efficient API Calls**: Only fetches repositories of the specific type needed
+- **Reduced Data Transfer**: Minimizes bandwidth usage by filtering at the source
+- **Faster Response Times**: Direct API filtering is much faster than client-side filtering
+
 ### **Example Workflow**
 1. Choose "Bulk archive repositories"
 2. Select multiple repositories using checkboxes
 3. Review confirmation showing selected repositories
 4. Execute bulk operation
 5. Review results showing success/failure for each repository
+
+## API Filtering Capabilities
+
+The program uses Octokit v22's efficient API methods for optimal performance:
+
+### **Available Filter Methods:**
+- **`listForAuthenticatedUser()`**: All repositories for the authenticated user
+- **`listPublic()`**: Only public repositories (server-side filtered)
+- **`listPrivate()`**: Only private repositories (server-side filtered)
+- **Client-side filtering**: For archived, forked, and source repositories
+
+### **Performance Benefits:**
+- **Server-side filtering**: Uses GitHub's native API methods for public/private repos
+- **Efficient API calls**: Minimizes data transfer and processing time
+- **Optimized sorting**: Uses `full_name` sorting for consistent ordering
+- **Reduced bandwidth**: Only fetches necessary repository data
+
+### **Use Cases:**
+- **Archive Operations**: Fetch all repos, filter active client-side
+- **Unarchive Operations**: Fetch all repos, filter archived client-side
+- **Visibility Changes**: Use dedicated public/private API methods
+- **Bulk Operations**: Efficient filtering for large repository collections
+
+## How to Use the Selection Interface
+When selecting a single repository (for viewing details, deleting, etc.):
+- Use **Arrow keys** (↑↓) to navigate through the list
+- Press **Enter** to select the highlighted repository
+- Use **⬅️ Back** option to return to the previous menu
+
+### **Multiple Repository Selection**
+When selecting multiple repositories (for bulk operations):
+
+#### **Navigation Controls:**
+- **Arrow keys** (↑↓): Move up and down the list
+- **Spacebar**: Select/deselect the highlighted repository
+- **Enter**: Confirm your selection and proceed
+
+#### **Quick Selection Options:**
+- **✅ Select All**: Instantly select all repositories in the list
+- **❌ Select None**: Clear all selections
+- **⬅️ Back**: Return to the previous menu without making changes
+
+#### **Visual Indicators:**
+- **`[ ]`**: Unselected repository
+- **`[x]`**: Selected repository
+- **`>`**: Currently highlighted repository
+
+#### **Example Interface:**
+```
+? Select repositories to archive:
+  ❌ Select None
+  ──────────────
+❯ [ ] my-project-1 - A React application
+  [x] old-todo-app - Legacy todo application  
+  [ ] test-repo - Testing repository
+  [ ] demo-project - Demo project
+  [ ] backup-repo - Backup repository
+  ⬅️  Back to previous menu
+
+Space to select, Enter to confirm
+```
+
+#### **Step-by-Step Example:**
+1. Navigate to the repository you want to select using arrow keys
+2. Press **Spacebar** to select it (you'll see `[x]` appear)
+3. Continue selecting other repositories with **Spacebar**
+4. Use **✅ Select All** if you want to select everything
+5. Press **Enter** when done to proceed
+6. Review the confirmation screen showing your selections
+7. Confirm the bulk operation
+
+#### **Tips:**
+- You can mix individual selections with "Select All"
+- Use "Select None" to start over if you make mistakes
+- The interface shows how many repositories you've selected
+- You can always go back without making changes
+
+#### **Common Issues & Solutions:**
+- **"Nothing happens when I press Spacebar"**: Make sure you're on a repository line, not the "Select All" or "Back" options
+- **"I can't see all repositories"**: Use arrow keys to scroll through the list
+- **"I selected the wrong repositories"**: Use "Select None" to clear all and start over
+- **"I want to go back"**: Use the "⬅️ Back" option or press Ctrl+C to exit
 
 ## User Information
 

@@ -34,11 +34,11 @@ class GitHubClient {
 
   async listRepositories(options = {}) {
     try {
-      const username = await this.getUsername();
-      const { data: repos } = await this.octokit.repos.listForUser({
-        username,
+      const { data: repos } = await this.octokit.repos.listForAuthenticatedUser({
         per_page: 100,
+        page: 2,
         sort: 'updated',
+        direction: 'asc',
         ...options
       });
 
@@ -55,11 +55,50 @@ class GitHubClient {
         updated_at: repo.updated_at,
         created_at: repo.created_at,
         html_url: repo.html_url,
-        clone_url: repo.clone_url
+        clone_url: repo.clone_url,
+        archived: repo.archived || false
       }));
     } catch (error) {
       throw new Error(`Failed to list repositories: ${error.message}`);
     }
+  }
+
+  async listArchivedRepositories() {
+    try {
+      const repos = await this.listRepositories();
+      return repos.filter(repo => repo.archived);
+    } catch (error) {
+      throw new Error(`Failed to list archived repositories: ${error.message}`);
+    }
+  }
+
+
+
+  async listActiveRepositories() {
+    try {
+      const repos = await this.listRepositories();
+      return repos.filter(repo => !repo.archived);
+    } catch (error) {
+      throw new Error(`Failed to list active repositories: ${error.message}`);
+    }
+  }
+
+  async listPublicRepositories() {
+    try {
+        const repos = await this.listRepositories();
+        return repos.filter(repo => !repo.private);
+      } catch (error) {
+        throw new Error(`Failed to list active repositories: ${error.message}`);
+      }
+  }
+
+  async listPrivateRepositories() {
+    try {
+        const repos = await this.listRepositories();
+        return repos.filter(repo => repo.private);
+      } catch (error) {
+        throw new Error(`Failed to list active repositories: ${error.message}`);
+      }
   }
 
   async searchRepositories(query, options = {}) {
@@ -85,7 +124,8 @@ class GitHubClient {
         updated_at: repo.updated_at,
         created_at: repo.created_at,
         html_url: repo.html_url,
-        clone_url: repo.clone_url
+        clone_url: repo.clone_url,
+        archived: repo.archived || false
       }));
     } catch (error) {
       throw new Error(`Failed to search repositories: ${error.message}`);
@@ -113,6 +153,7 @@ class GitHubClient {
         created_at: data.created_at,
         html_url: data.html_url,
         clone_url: data.clone_url,
+        archived: data.archived || false,
         default_branch: data.default_branch,
         size: data.size,
         open_issues_count: data.open_issues_count,
@@ -253,6 +294,22 @@ class GitHubClient {
       try {
         const result = await this.unarchiveRepository(owner, repo.name);
         results.push({ ...result, success: true });
+      } catch (error) {
+        errors.push({ name: repo.name, error: error.message });
+      }
+    }
+
+    return { results, errors };
+  }
+
+  async bulkDeleteRepositories(owner, repos) {
+    const results = [];
+    const errors = [];
+
+    for (const repo of repos) {
+      try {
+        await this.deleteRepository(owner, repo.name);
+        results.push({ name: repo.name, success: true });
       } catch (error) {
         errors.push({ name: repo.name, error: error.message });
       }

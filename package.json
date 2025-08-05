@@ -8,15 +8,20 @@
     "dev": "node --watch index.js",
     "setup": "node setup.js"
   },
-  "keywords": ["github", "management", "repositories", "cli"],
+  "keywords": [
+    "github",
+    "management",
+    "repositories",
+    "cli"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@octokit/rest": "^20.0.2",
-    "inquirer": "^9.2.12",
-    "chalk": "^4.1.2",
-    "ora": "^5.4.1",
-    "dotenv": "^16.3.1"
+    "@octokit/rest": "^22.0.0",
+    "chalk": "^5.5.0",
+    "dotenv": "^17.2.1",
+    "inquirer": "^12.9.0",
+    "ora": "^8.2.0"
   },
   "type": "module"
-} 
+}
